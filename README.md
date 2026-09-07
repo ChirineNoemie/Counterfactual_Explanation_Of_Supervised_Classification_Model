@@ -1,10 +1,10 @@
 # LVQ-CF: Prototype-Based Counterfactual Explainability
 
-Implementation of LVQ-CF, a prototype-based counterfactual explanation method, applicable to any scikit-learn-compatible supervised classification model.
+Implementation of LVQ-CF, a prototype-based counterfactual explanation method, applicable to any supervised classification model.
 
 ## Description
 
-This project proposes an extension of the Bergamin & Aiolli approach, replacing k-medoids prototypes with LVQ prototypes positioned near the decision boundary. Unlike SVM-specific baseline methods, LVQ-CF is designed to generalize to supervised classifier.
+This project proposes an extension of the Bergamin & Aiolli approach, replacing k-medoids prototypes with LVQ prototypes positioned near the decision boundary. Unlike Bergamin & Aiolli approach, LVQ-CF is designed to generalize to supervised classifier.
 
 ## Multiclass support: One-vs-Rest (OVR)
 
@@ -22,9 +22,9 @@ For datasets with k > 2 classes, counterfactual generation toward a target class
 
 To run the proposed LVQ-CF approach on its own:
 
-\`\`\`bash
+```bash
 python run_final_script.py --datasets iris wine --methods lvq --dataset_type all
-\`\`\`
+```
 
 ### Available arguments
 
@@ -51,17 +51,24 @@ python run_final_script.py --datasets iris wine --methods lvq --dataset_type all
 
 Results are saved to `results_<datasets>_<methods>_<dataset_type>.csv`, with a summary table in `summary_<datasets>_<methods>_<dataset_type>.csv`.
 
+### Metrics
+
+Each experiment reports the following metrics for the generated counterfactuals:
+
+| Metric | Description |
+|---|---|
+| Validity | Percentage of generated counterfactuals correctly classified as the target class |
+| Distance L2 | Euclidean distance between the counterfactual and the original instance (proximity) |
+| Distance L1 | Manhattan distance between the counterfactual and the original instance |
+| Density (KDE) | Kernel density estimate at the counterfactual's location, reflecting how plausible/in-distribution it is |
+| Diversity | Pairwise dissimilarity among multiple counterfactuals generated for the same instance (when `n_counterfactuals > 1`) |
 ---
 
 ## Comparison with baseline methods
 
 \`\`\`bash
 python run_final_script.py --datasets iris wine --methods lvq wachter dice Medoid-based --dataset_type all
-\`\`\`
-
-This produces side-by-side metrics (accuracy, validity, distance, density, diversity) for each method on the selected datasets.
-
-Two additional comparison methods — **NNContrastive** and **CFProto** — are integrated via external libraries rather than through `run_final_script.py`'s `--methods` flag (see `test_nncontrastive.py`).
+\`\`\
 
 ## Method implementations 
 
