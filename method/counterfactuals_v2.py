@@ -14,7 +14,7 @@ from utils.utils import compute_diversity
 
 Methods = {
     'wachter': 'Wachter et al.',
-    'proposal': 'Proposal',
+    'Medoid-based': 'Medoid-based',
     'dice': 'DiCE',
 }
 
@@ -223,7 +223,7 @@ def clustering_method(method, n_clusters):
         raise ValueError(f"Unknown clustering method: {method}")
 
 
-class CounterfactualProposal(BaseCounterfactual):
+class CounterfactualMedoid(BaseCounterfactual):
     def __init__(self, clf, num_iter=100,
                  beta=10.0, X_train=None, n_clusters=-1, cluster_method='kmedoids', eps=1e-3):
         super().__init__(clf, num_iter=num_iter)
@@ -286,7 +286,7 @@ class CounterfactualProposal(BaseCounterfactual):
 
     @classmethod
     def get_class_name(cls):
-        return Methods['proposal']
+        return Methods['Medoid-based']
 
     def long_decision_function(self, X):
         y_pred = []
@@ -527,177 +527,5 @@ class CounterfactualDiCE(BaseCounterfactual):
         return np.array(list(result)).reshape(N, dim)
 
 
-# what i tried doing was
-# if len(xcf) < n_counterfactuals:
-#             # i need to pad the outputs of dice
-#             xcf = np.concatenate([xcf, np.zeros((n_counterfactuals - len(xcf), xcf.shape[-1]))])
-# but this leads to headaches for the evaluation later. so i'll be stricter.
-
-# def show_toy(xcf1_explainer, xcf2_explainer, X_train, y_train, x_orig, target):
-#     res1 = xcf1_explainer.compute_counterfactual(x_orig, target=target, return_path=True)
-#     xcf1, path = res1[0].flatten(), res1[1]
-#     res2 = xcf2_explainer.compute_counterfactual(x_orig, target=target)
-#     xcf2 = res2.flatten()
-#     xis = xcf1_explainer.xis
-
-#     import matplotlib.pyplot as plt
-#     # change dpi
-#     plt.figure(dpi=300)
-#     # change scale font
-#     plt.rcParams.update({'font.size': 16})
-#     plt.xlim(-2, 4)
-#     plt.ylim(-2, 2.5)
-#     plt.scatter(X_train[y_train == 0, 0], X_train[y_train == 0, 1], c='r', label='-1', s=50)
-#     plt.scatter(X_train[y_train == 1, 0], X_train[y_train == 1, 1], c='b', label='1', s=50)
-#     plt.scatter(x_orig[0], x_orig[1], c='g', marker='x', label='Original', s=200)
-#     plt.scatter(xcf1[0], xcf1[1], c='orange', marker='x', label='Baseline', s=200)
-#     plt.scatter(xcf2[0], xcf2[1], c='m', marker='x', label='Proposal', zorder=30, s=200)
-
-#     # sv
-#     plt.scatter(xis[:, 0], xis[:, 1], c='k',
-#                 marker='x', label='SV')
-#     xx, yy = np.meshgrid(np.linspace(-2, 4, 100), np.linspace(-2, 2.5, 100))
-#     plt.contourf(xx, yy, xcf1_explainer.decision_function(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape),
-#                  alpha=0.2,
-#                  levels=20)  # linewidths=1)
-#     plt.colorbar()
-#     plt.contour(xx, yy, xcf1_explainer.decision_function(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape),
-#                 levels=[-1, 0, 1], linewidths=3,
-#                 colors='black', linestyles=['--', '-', '--'])
-
-#     path = np.array(path).reshape(-1, 2)
-#     plt.plot(path[:, 0], path[:, 1], color='orange')
-#     plt.plot([x_orig[0], xcf2[0]], [x_orig[1], xcf2[1]], color='m')
-#     plt.legend(loc='lower left', framealpha=1.0)
-
-#     # plt.show()
-#     plt.savefig(f"toy.pdf")
-
-
-
-
-# import numpy as np
-# import matplotlib.pyplot as plt
-
-# def show_toy(xcf1_explainer, xcf2_explainer, X_train, y_train, x_orig, target=1, N=1, strategy='greedy'):
-#     # 1. Calcul des contre-factuels
-#     # Baseline (Wachter) - toujours N=1 car il ne supporte pas les multiples
-#     res1 = xcf1_explainer.compute_counterfactual(x_orig, target=target, return_path=True)
-#     xcf1, path = res1[0], res1[1]
-    
-#     # Proposal - peut supporter N multiples
-#     if N == 1:
-#         xcf2 = xcf2_explainer.compute_counterfactual(x_orig, target=target)
-#     else:
-#         xcf2 = xcf2_explainer.compute_counterfactual(x_orig, target=target, N=N, strategy=strategy)
-    
-#     # 2. Correction des dimensions
-#     xcf1 = np.array(xcf1).flatten()
-#     xis = xcf1_explainer.xis
-
-#     # 3. Configuration graphique
-#     plt.figure(figsize=(10, 8), dpi=300)
-#     plt.rcParams.update({'font.size': 16})
-#     plt.xlim(-2, 4)
-#     plt.ylim(-2, 2.5)
-
-#     # 4. Dessin de la fonction de décision (Contours)
-#     xx, yy = np.meshgrid(np.linspace(-2, 4, 100), np.linspace(-2, 2.5, 100))
-#     grid_points = np.c_[xx.ravel(), yy.ravel()]
-    
-#     Z = xcf2_explainer.decision_function(grid_points).reshape(xx.shape)
-
-#     plt.contourf(xx, yy, Z, alpha=0.2, levels=20, cmap='RdBu')
-#     plt.colorbar(label="Score de décision")
-#     plt.contour(xx, yy, Z, levels=[-1, 0, 1], linewidths=3,
-#                 colors='black', linestyles=['--', '-', '--'])
-
-#     # 5. Affichage des points de données
-#     plt.scatter(X_train[y_train == 0, 0], X_train[y_train == 0, 1], c='r', label='Classe -1', s=50, alpha=0.5)
-#     plt.scatter(X_train[y_train == 1, 0], X_train[y_train == 1, 1], c='b', label='Classe 1', s=50, alpha=0.5)
-    
-#     # Vecteurs Supports
-#     plt.scatter(xis[:, 0], xis[:, 1], c='k', marker='x', label='SV', alpha=0.3)
-
-#     # 6. Affichage des résultats contre-factuels
-#     plt.scatter(x_orig[0], x_orig[1], c='g', marker='x', label='Original', s=200, zorder=35)
-    
-#     # Baseline (Wachter) - toujours un seul
-#     if xcf1 is not None:
-#         plt.scatter(xcf1[0], xcf1[1], c='orange', marker='x', label='Baseline (Wachter)', s=200, zorder=35)
-#         # Dessin du chemin pour la baseline
-#         path = np.array(path).reshape(-1, 2)
-#         plt.plot(path[:, 0], path[:, 1], color='orange', linestyle='-', linewidth=2)
-
-#     # Proposal - peut être multiple
-#     if xcf2 is not None:
-#         if N == 1:
-#             # Un seul contre-factuel
-#             xcf2 = np.array(xcf2).flatten()
-#             plt.scatter(xcf2[0], xcf2[1], c='m', marker='x', label='Proposal (Ours)', s=200, zorder=40)
-#             plt.plot([x_orig[0], xcf2[0]], [x_orig[1], xcf2[1]], color='m', linestyle='--', linewidth=2)
-#         else:
-#             # Multiples contre-factuels
-#             if len(xcf2.shape) == 1:
-#                 xcf2 = xcf2.reshape(1, -1)  # Au cas où on n'a qu'un seul résultat
-            
-#             for i in range(len(xcf2)):
-#                 label = 'Proposal (Ours)' if i == 0 else None  # Label seulement pour le premier
-#                 plt.scatter(xcf2[i, 0], xcf2[i, 1], c='m', marker='x', s=200, zorder=40, label=label)
-#                 plt.plot([x_orig[0], xcf2[i, 0]], [x_orig[1], xcf2[i, 1]], color='m', linestyle='--', linewidth=2, alpha=0.7)
-
-#     plt.legend(loc='lower left', framealpha=1.0, fontsize=12)
-#     title = f"Comparaison des méthodes de Contrefactuels"
-#     if N > 1:
-#         title += f" (N={N}, Strategy={strategy})"
-#     plt.title(title)
-    
-#     # Génération automatique du nom de fichier avec compteur
-#     import os
-#     counter = 1
-#     while os.path.exists(f"toy_{counter}.pdf"):
-#         counter += 1
-#     filename = f"toy_{counter}.pdf"
-    
-#     plt.savefig(filename, bbox_inches='tight')
-#     print(f"Graphique sauvegardé sous '{filename}' avec N={N} contre-factuels")
-    
-#     # Affichage des prototypes/contre-factuels obtenus
-#     print("\n" + "="*60)
-#     print("PROTOTYPES/CONTRE-FACTUELS OBTENUS:")
-#     print("="*60)
-    
-#     print(f"\nPoint original: {x_orig}")
-#     print(f"Target: {target}")
-    
-#     if xcf1 is not None:
-#         print(f"\nBaseline (Wachter):")
-#         print(f"  Contre-factuel: {xcf1}")
-#         print(f"  Distance à l'original: {np.linalg.norm(xcf1 - x_orig):.4f}")
-#         print(f"  Score de décision: {xcf2_explainer.decision_function(xcf1.reshape(1, -1))[0]:.4f}")
-    
-#     if xcf2 is not None:
-#         print(f"\nProposal (Ours):")
-#         if N == 1:
-#             print(f"  Contre-factuel: {xcf2}")
-#             print(f"  Distance à l'original: {np.linalg.norm(xcf2 - x_orig):.4f}")
-#             print(f"  Score de décision: {xcf2_explainer.decision_function(xcf2.reshape(1, -1))[0]:.4f}")
-#         else:
-#             print(f"  Nombre de contre-factuels: {len(xcf2)}")
-#             for i, cf in enumerate(xcf2):
-#                 print(f"  CF {i+1}: {cf}")
-#                 print(f"    Distance: {np.linalg.norm(cf - x_orig):.4f}")
-#                 print(f"    Score: {xcf2_explainer.decision_function(cf.reshape(1, -1))[0]:.4f}")
-            
-#             # Calcul de la diversité si multiple
-#             if len(xcf2) > 1:
-#                 from utils.utils import compute_diversity
-#                 diversity = compute_diversity(xcf2)
-#                 print(f"  Diversité des solutions: {diversity:.4f}")
-    
-#     print("="*60)
-
-#     import sys
-#     sys.exit(0)
 
 

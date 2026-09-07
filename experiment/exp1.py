@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from data.dataset import DatasetLoader
 from utils.utils import binarize_labels, compute_diversity, standardize_data
-from method.counterfactuals_v2 import CounterfactualWachter, CounterfactualProposal, CounterfactualDiCE
+from method.counterfactuals_v2 import CounterfactualWachter, CounterfactualMedoid, CounterfactualDiCE
 from method.lvq import CounterfactualLVQ
 from sklearn.svm import SVC
 from sklearn.neighbors import KernelDensity
@@ -102,7 +102,7 @@ def memorized_run(dataset_name=None,
                   n_folds=2,
                   max_samples=10000,
                   cv_grid_size=20,
-                  method='proposal',
+                  method='Medoid-based',
                   num_iter=100,
                   n_counterfactuals=1,
                   clustering_method='kmedoids',
@@ -149,7 +149,7 @@ def memorized_run(dataset_name=None,
 
 
 def run_single_split(X_train=None, y_train=None,y_binary_train=None, X_test=None, y_test=None,y_binary_test=None, cv_index=None, cv_grid_size=20,
-                     method='proposal', num_iter=100, n_clusters=-1, n_counterfactuals=1, clustering_method='kmedoids',
+                     method='Medoid-based', num_iter=100, n_clusters=-1, n_counterfactuals=1, clustering_method='kmedoids',
                      lambda_=10., beta=10., n_folds=2, dataset_name=None, max_samples=3000, strategy='greedy',
                      compute_diversity=True):
     # Train classifier and fit density estimators
@@ -220,7 +220,7 @@ def optimize_kde(X, cv_grid_size=20):
     return memorized_kde(X, step)
 
 
-def init_method(model=None, method='proposal', X_train=None, y_train=None, num_iter=100, n_clusters=-1,
+def init_method(model=None, method='Medoid-based', X_train=None, y_train=None, num_iter=100, n_clusters=-1,
                 clustering_method='kmedoids', lambda_=10., beta=10.):
     if method == 'wachter':
         return CounterfactualWachter(
@@ -235,8 +235,8 @@ def init_method(model=None, method='proposal', X_train=None, y_train=None, num_i
             y_train=y_train, num_iter=num_iter
         )
 
-    if method == 'proposal':
-        return CounterfactualProposal(
+    if method == 'Medoid-based':
+        return CounterfactualMedoid-based(
             clf=model,
             beta=beta,
             X_train=X_train,
@@ -441,7 +441,7 @@ class CounterfactualExperiment1:
                  n_clusters=-1,
                  num_iter=100,
                  max_samples=10000,
-                 method='proposal',
+                 method='Medoid-based',
                  n_counterfactuals=1,
                  X_train=None,
                  y_train=None,

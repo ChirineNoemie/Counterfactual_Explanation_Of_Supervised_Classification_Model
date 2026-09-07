@@ -24,7 +24,7 @@ def cached_run_all(datasets=None,
                    n_clusters_list=None, strategy_list=None, beta_list=None, lambda_list=None,
                    clustering_method_list=None, cv_grid_size=20, max_samples=3000, n_jobs=1,n_folds=2):
     if method_list is None:
-        method_list = ['wachter', 'proposal', 'dice', 'lvq']
+        method_list = ['wachter', 'Medoid-based', 'dice', 'lvq']
     if num_iter_list is None:
         num_iter_list = [100]
     if n_counterfactuals_list is None:
@@ -51,13 +51,13 @@ def cached_run_all(datasets=None,
                 strategy_list, beta_list)):
             experiment = CounterfactualExperiment1(
                 dataset_name=dataset,
-                n_clusters=n_clusters if method in ['proposal', 'lvq'] else -1,
+                n_clusters=n_clusters if method in ['Medoid-based', 'lvq'] else -1,
                 cv_grid_size=cv_grid_size,
                 num_iter=num_iter,
                 max_samples=max_samples,
                 method=method,
                 n_counterfactuals=n_counterfactuals,
-                clustering_method=clustering_method if method in ['proposal', 'lvq'] and n_clusters > 0 else None,
+                clustering_method=clustering_method if method in ['Medoid-based', 'lvq'] and n_clusters > 0 else None,
                 strategy=strategy,
                 beta=beta,
                 compute_diversity=(n_counterfactuals > 1),
@@ -82,10 +82,10 @@ if __name__ == '__main__':
                         help='Dataset to use')
     parser.add_argument('--dataset_type', type=str, choices=['binary', 'multiclass', 'all'], default='all',
                        help='Type de datasets à exécuter: binary, multiclass ou all')
-    parser.add_argument('--methods', nargs='+', type=str, default=['wachter', 'dice', 'proposal', 'lvq'], help='Method to use')
+    parser.add_argument('--methods', nargs='+', type=str, default=['wachter', 'dice', 'Medoid-based', 'lvq'], help='Method to use')
     parser.add_argument('--num_iters', nargs='+', type=int, default=[100], help='Number of iterations')
     parser.add_argument('--n_clusters', nargs='+', type=int, default=[32],
-                        help='Number of clusters, ignored by all expect proposal')
+                        help='Number of clusters, ignored by all expect Medoid-based')
     parser.add_argument('--cv_grid_size', type=int, default=20, help='CV grid size')
     parser.add_argument('--max_samples', type=int, default=3000, help='Max samples for the train+test set')
     parser.add_argument('--n_counterfactuals', nargs='+', type=int, default=[1],
