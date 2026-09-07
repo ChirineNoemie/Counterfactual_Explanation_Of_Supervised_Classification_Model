@@ -55,7 +55,7 @@ Results are saved to `results_<datasets>_<methods>_<dataset_type>.csv`, with a s
 
 This is the default configuration used by Medoid-CF (Bergamin & Aiolli). We first report results for the baseline methods under this configuration, then show how LVQ-CF performs under the same setup for direct comparison.
 
-*Note**: Diversity is not reported in this configuration (`q=1`) since only a single counterfactual is generated per instance.
+**Note**: Diversity is not reported in this configuration (`q=1`) since only a single counterfactual is generated per instance.
 
 #### Baseline methods
 
