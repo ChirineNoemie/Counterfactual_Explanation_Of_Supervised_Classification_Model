@@ -51,6 +51,19 @@ python run_final_script.py --datasets iris wine --methods lvq --dataset_type all
 
 Results are saved to `results_<datasets>_<methods>_<dataset_type>.csv`, with a summary table in `summary_<datasets>_<methods>_<dataset_type>.csv`.
 
+### q = 1 counterfactual, 5-fold cross-validation (q=1, k=5)
+
+This is the default configuration used by Medoid-CF (Bergamin & Aiolli). We first report results for the baseline methods under this configuration, then show how LVQ-CF performs under the same setup for direct comparison.
+
+#### Baseline methods
+
+![Baseline results (q=1, k=5)](results/Screenshotforq1_k5.png)
+
+#### LVQ-CF (ours)
+
+![LVQ-CF results (q=1, k=5)](results/Screenshot_lvq.png)
+
+
 ### Metrics
 
 Each experiment reports the following metrics for the generated counterfactuals:
