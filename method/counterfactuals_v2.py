@@ -52,14 +52,14 @@ class BaseCounterfactual:
         self.end_init_time = time.perf_counter()
         self.init_time = self.end_init_time - self.start_init_time
     def _set_model(self, clf):
-        self.clf_obj = clf  # classifieur brut conservé pour les appels génériques (predict/predict_proba)
+        self.clf_obj = clf  # raw classifier kept for generic calls (predict/predict_proba)
         if isinstance(clf, dict):
             self.is_svm = True
             self.model_dict = clf
-             # prendre un modèle de référence
+             # take a reference model
             clf0 = next(iter(clf.values()))
 
-            # récupérer le vrai SVM
+            # retrieve the actual SVM
             if isinstance(clf0, GridSearchCV):
                 clf0 = clf0.best_estimator_
 
@@ -91,7 +91,7 @@ class BaseCounterfactual:
                 b = clf.intercept_[0]
                 gamma = clf.gamma
         else:
-                # Classifieur générique (non-SVM) : on stocke uniquement clf_obj
+                # Generic classifier (non-SVM): only clf_obj is stored
                 self.is_svm = False
                 self.xis = np.zeros((1, 1))
                 self.alphas = np.zeros(1)
@@ -142,9 +142,9 @@ class BaseCounterfactual:
         # if isinstance(query_instance, np.ndarray):
         #     query_instance = torch.tensor(query_instance, dtype=torch.float32)
 
-        # En mode OVR multiclasse, `target` vaut toujours +1 (convention du SVM
-        # binaire local). On conserve la vraie classe cible dans self.target_class.
-        # En binaire (target_class non fourni), on retombe sur target (-1/+1).
+        # In multiclass OVR mode, `target` is always +1 (local binary SVM
+        # convention). The real target class is kept in self.target_class.
+        # In binary mode (target_class not provided), we fall back to target (-1/+1).
         self.target_class = target_class if target_class is not None else target
 
         cf_instance = self._compute_counterfactual(query_instance, target, N=N, **kwargs)
@@ -232,7 +232,7 @@ class CounterfactualMedoid(BaseCounterfactual):
                              "if you want to have < 0 clusters aka other modes, set cluster_method to None")
         #self.C = C = clf.best_estimator_.C
         if isinstance(clf, dict):
-            clf0 = next(iter(clf.values()))  # prendre un modèle
+            clf0 = next(iter(clf.values()))  # take a model
         else:
             clf0 = clf
 
@@ -332,20 +332,20 @@ class CounterfactualMedoid(BaseCounterfactual):
         print(f"[DEBUG] target = {y}")
         y_train_dbg = getattr(self, 'y_train', None)
         if y_train_dbg is not None:
-            print(f"[DEBUG] nb points classe cible = {np.sum(y_train_dbg == y)}")
+            print(f"[DEBUG] number of target class points = {np.sum(y_train_dbg == y)}")
         x_c = self._compute_starting_counterfactual_x_c(y)
-        print(f"[DEBUG] nb candidats AVANT filtrage = {len(x_c) if x_c is not None else 'None'}")
+        print(f"[DEBUG] number of candidates BEFORE filtering = {len(x_c) if x_c is not None else 'None'}")
         if x_c is None or len(x_c) == 0:
-            print("[DEBUG] Aucun candidat trouvé → retour None")
+            print("[DEBUG] No candidate found -> returning None")
             return None
 
         x_lambda_c = np.array([self._line_search(x, xci, y) for xci in x_c])
-        
+
         if len(self.existing_counterfactuals) > 0 and len(x_lambda_c) > 0:
             x_lambda_c = np.vstack([x_lambda_c, self.existing_counterfactuals])
         elif len(self.existing_counterfactuals) > 0:
             x_lambda_c = self.existing_counterfactuals
-        print(f"[DEBUG] nb candidats APRÈS filtrage = {len(x_lambda_c) if x_lambda_c is not None else 'None'}")
+        print(f"[DEBUG] number of candidates AFTER filtering = {len(x_lambda_c) if x_lambda_c is not None else 'None'}")
         return x_lambda_c
 
     def _compute_counterfactual(self, query_instance, target, N=1, strategy='greedy', **kwargs):
@@ -370,9 +370,9 @@ class CounterfactualMedoid(BaseCounterfactual):
     def _greedy_selection(self, query_instance, target, N):
         raw_candidates = self._compute_counterfactual_candidates(query_instance, target)
         if raw_candidates is None:
-            # CORRECTIF: aucun candidat (ex: pas de prototype pour cette classe) ->
-            # on traite l'echantillon comme un echec (xcf=None plus haut), au lieu
-            # de planter tout le batch sur list(None).
+            # FIX: no candidate (e.g. no prototype for this class) ->
+            # treat the sample as a failure (xcf=None further up), instead
+            # of crashing the whole batch on list(None).
             return []
         candidates = list(raw_candidates)
         candidates_with_distance = sorted([(c, np.linalg.norm(c - query_instance)) for c in candidates],

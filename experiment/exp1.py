@@ -33,7 +33,7 @@ DEBUG = True
 #     model = GridSearchCV(
 #         estimator=SVC(kernel='rbf', probability=True, random_state=random_state),
 #         param_grid={'C': np.logspace(-1, 3, cv_grid_size), 'gamma': np.logspace(-6, 0, cv_grid_size)},
-#         n_jobs=2, verbose=0, cv=n_folds  # verbose=0 pour masquer les détails
+#         n_jobs=2, verbose=0, cv=n_folds  # verbose=0 to hide details
 #     )
 #     model.fit(X_train, y_train)
 #     return model
@@ -58,7 +58,7 @@ def memorized_kde(X, step, n_folds=2):
     kde_cv = GridSearchCV(
         estimator=KernelDensity(),
         param_grid={'bandwidth': np.arange(0.1, 10.0, step)}, n_jobs=-1, cv=n_folds,
-        verbose=0  # verbose=0 pour masquer les détails
+        verbose=0  # verbose=0 to hide details
     )
     kde_cv.fit(X)
     return KernelDensity(bandwidth=kde_cv.best_params_["bandwidth"]).fit(X)
@@ -74,7 +74,7 @@ def compute_cf_and_runtime(cf_method, x_orig, y_target, model, N=1, **kwargs):
     import time
     start_time = time.perf_counter()
 
-    if isinstance(model, dict):  # OVR multiclasse
+    if isinstance(model, dict):  # multiclass OVR
         xcf = cf_method.compute_counterfactual(
             x_orig,
             target=1,
@@ -83,7 +83,7 @@ def compute_cf_and_runtime(cf_method, x_orig, y_target, model, N=1, **kwargs):
             N=N,
             **kwargs
         )
-    else:  # binaire
+    else:  # binary
         xcf = cf_method.compute_counterfactual(
             x_orig,
             target=2 * y_target - 1,
@@ -119,7 +119,7 @@ def memorized_run(dataset_name=None,
     X, y = shuffle(X, y, random_state=random_state)
     X, y = X[:max_samples], y[:max_samples]
     y_original = y.copy()          # multiclass
-    y_binary = binarize_labels(y) # binaire
+    y_binary = binarize_labels(y) # binary
     
 
     kf = KFold(n_splits=n_folds, random_state=random_state, shuffle=True)
@@ -157,17 +157,17 @@ def run_single_split(X_train=None, y_train=None,y_binary_train=None, X_test=None
     classes = np.unique(y_train)
 
     if len(classes) > 2:
-        # MULTICLASSE : un classifieur binaire par classe (OVR)
+        # MULTICLASS: one binary classifier per class (OVR)
         model = train_ovr_classifiers(X_train, y_train, cv_grid_size=cv_grid_size,
                                       random_state=42, n_folds=n_folds)
 
     else:
-        # BINAIRE
+        # BINARY
         model = train_classifier(X_train, y_binary_train,
                                 cv_grid_size=cv_grid_size,
                                 random_state=42, n_folds=n_folds)
 
-        # IMPORTANT: remplacer y_train/y_test par version binaire
+        # IMPORTANT: replace y_train/y_test with the binary version
         y_train = y_binary_train
         y_test = y_binary_test
 
@@ -187,8 +187,8 @@ def train_classifier(X_train, y_train, cv_grid_size=20, random_state=42, n_folds
                                  random_state=random_state, n_folds=n_folds)
 
 def train_ovr_classifiers(X_train, y_train, cv_grid_size=20, random_state=42, n_folds=2):
-    """Entraîne un classifieur binaire par classe (stratégie One-vs-Rest).
-    Compatible avec tout classifieur retourné par memorized_train_model."""
+    """Trains one binary classifier per class (One-vs-Rest strategy).
+    Compatible with any classifier returned by memorized_train_model."""
     models = {}
     for cls in np.unique(y_train):
         y_bin = (y_train == cls).astype(int)
@@ -199,8 +199,8 @@ def train_ovr_classifiers(X_train, y_train, cv_grid_size=20, random_state=42, n_
     return models
 
 def predict_ovr(models, x):
-    """Prédit la classe pour x dans un ensemble OVR.
-    Utilise predict_proba pour être compatible avec tout classifieur."""
+    """Predicts the class for x within an OVR ensemble.
+    Uses predict_proba to be compatible with any classifier."""
     scores = {cls: model.predict_proba(x.reshape(1, -1))[0][1]
               for cls, model in models.items()}
     return max(scores, key=scores.get)
@@ -236,7 +236,7 @@ def init_method(model=None, method='Medoid-based', X_train=None, y_train=None, n
         )
 
     if method == 'Medoid-based':
-        return CounterfactualMedoid-based(
+        return CounterfactualMedoid(
             clf=model,
             beta=beta,
             X_train=X_train,
@@ -265,21 +265,21 @@ def generate_counterfactuals(model=None, method=None,
                              compute_diversity=True):
     
     if isinstance(model, dict) and method.get_class_name() == 'LVQ':
-        # OVR + saisie interactive uniquement pour LVQ
+        # OVR + interactive input only for LVQ
         predictions = np.array([predict_ovr(model, x) for x in X_test])
         all_classes = sorted(list(model.keys()))
 
-        print(f"\nClasses disponibles dans ce dataset : {all_classes}")
+        print(f"\nClasses available in this dataset: {all_classes}")
         target_class_user = None
         while target_class_user not in all_classes:
             try:
                 target_class_user = int(input(
-                    f"Entrez la classe cible souhaitée parmi {all_classes} : "
+                    f"Enter the desired target class among {all_classes}: "
                 ))
                 if target_class_user not in all_classes:
-                    print(f"Classe invalide. Choisissez parmi {all_classes}.")
+                    print(f"Invalid class. Choose among {all_classes}.")
             except ValueError:
-                print("Entrée invalide, entrez un entier.")
+                print("Invalid input, enter an integer.")
 
         y_test_target = []
         for i, x in enumerate(X_test):
@@ -287,15 +287,15 @@ def generate_counterfactuals(model=None, method=None,
             if y_pred == target_class_user:
                 alternatives = [c for c in all_classes if c != y_pred]
                 target = alternatives[0]
-                print(f"  Instance {i} déjà classée dans {y_pred}, "
-                    f"classe cible ajustée à {target}")
+                print(f"  Instance {i} already classified as {y_pred}, "
+                    f"target class adjusted to {target}")
             else:
                 target = target_class_user
             y_test_target.append(target)
         y_test_target = np.array(y_test_target)
 
     else:
-        # Binaire OU méthode non-LVQ sur multiclasse
+        # Binary OR non-LVQ method on multiclass
         predictions = model.predict(X_test) if not isinstance(model, dict) \
                     else np.array([predict_ovr(model, x) for x in X_test])
         if y_test_target == 'opposite':
@@ -400,7 +400,7 @@ def format_results(model=None, cf_method=None, x_orig=None, y_orig=None, y_targe
         distance = np.array([np.linalg.norm(x_orig - xcf_) for xcf_ in xcf])
         distance_l1 = np.array([np.sum(np.abs(x_orig - xcf_)) for xcf_ in xcf])
         counterfactual = np.array(xcf.reshape(-1, xcf.shape[-1]))
-        # Calculer la diversité seulement si demandé
+        # Compute diversity only if requested
         if compute_diversity:
             from utils.utils import compute_diversity as calc_diversity
             diversity = calc_diversity(counterfactual)

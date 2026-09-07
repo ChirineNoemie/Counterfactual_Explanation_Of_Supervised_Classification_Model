@@ -1,0 +1,13 @@
+# requirements.txt — LVQ-CF core (this project's method)
+NB: This project runs entirely on CPU — no GPU/CUDA installation required.
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.4.1
+numpy==1.26.4
+pandas==1.5.3
+scipy==1.11.0
+scikit-learn==1.4.1.post1
+scikit-learn-extra==0.3.0
+torch==2.4.1
+joblib==1.5.2
+raiutils==0.4.2

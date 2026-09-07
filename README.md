@@ -66,9 +66,9 @@ Each experiment reports the following metrics for the generated counterfactuals:
 
 ## Comparison with baseline methods
 
-\`\`\`bash
+```bash
 python run_final_script.py --datasets iris wine --methods lvq wachter dice Medoid-based --dataset_type all
-\`\`\
+```
 
 ## Method implementations 
 

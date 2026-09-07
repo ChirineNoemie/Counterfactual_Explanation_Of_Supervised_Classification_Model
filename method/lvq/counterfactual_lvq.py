@@ -1,27 +1,27 @@
 """
-CounterfactualLVQ — contrefactuels guidés par des prototypes LVQ.
+CounterfactualLVQ — counterfactuals guided by LVQ prototypes.
 
-L'algorithme d'apprentissage des prototypes est LVQ1 (Algorithme 1).
+The prototype learning algorithm is LVQ1 (Algorithm 1).
 
-Organisation en deux phases
-───────────────────────────
+Organized in two phases
+───────────────────────
 
-Phase OFFLINE (à l'__init__, identique binaire et multiclasse)
-  LVQ1 sur tout Dtrain : nprot prototypes par classe, étiquetés.
-  Pour chaque (x, y) : w* = argmin ||x − w||² toutes classes confondues,
-  attraction si classe(w*) = y, répulsion sinon.
-  L'apprentissage des prototypes est indépendant du classifieur :
-  il n'utilise que les données et leurs vraies étiquettes.
+OFFLINE phase (in __init__, identical for binary and multiclass)
+  LVQ1 over the whole Dtrain: nprot prototypes per class, labeled.
+  For each (x, y): w* = argmin ||x − w||² over all classes combined,
+  attraction if class(w*) = y, repulsion otherwise.
+  Prototype learning is independent of the classifier:
+  it only uses the data and their true labels.
 
-Phase ONLINE (compute_counterfactual)
-  1. y' : classe cible fournie par le pipeline
-  2. P[y'] = lvq_prototypes[y']          (déjà calculés)
-  3. recherche linéaire pour chaque prototype x_c :
+ONLINE phase (compute_counterfactual)
+  1. y': target class provided by the pipeline
+  2. P[y'] = lvq_prototypes[y']          (already computed)
+  3. line search for each prototype x_c:
        L(λ) = (1−λ)² + β·(1 − P(y'|λ·x0 + (1−λ)·x_c))²
-     (1−λ)² : proximité à x0 (λ=1 ↔ x0, λ=0 ↔ prototype)
-     (1−P)² : validité, P fournie par le classifieur de la classe cible
-  4. validité : contrôlée par ce même classifieur f_y'
-     (binaire : clf.predict ; multiclasse : clf[y'].predict == 1)
+     (1−λ)²: proximity to x0 (λ=1 ↔ x0, λ=0 ↔ prototype)
+     (1−P)²: validity, P provided by the target class classifier
+  4. validity: controlled by that same classifier f_y'
+     (binary: clf.predict; multiclass: clf[y'].predict == 1)
 """
 
 import time
@@ -50,27 +50,26 @@ class CounterfactualLVQ:
         self.X_train = X_train
         self.y_train = y_train
 
-        # Phase OFFLINE : LVQ1 sur tout Dtrain, quel que soit le
-        # classifieur (binaire ou dict OVR). L'apprentissage des
-        # prototypes ne dépend pas de la façon dont le classifieur
-        # a été entraîné.
+        # OFFLINE phase: LVQ1 over the whole Dtrain, regardless of the
+        # classifier (binary or OVR dict). Prototype learning does not
+        # depend on how the classifier was trained.
         if X_train is not None and y_train is not None:
             self._fit_lvq(X_train, y_train, n_prototypes)
 
     # ------------------------------------------------------------------
-    # LVQ1 — Algorithme 1 (Dtrain entier, toutes classes)
+    # LVQ1 — Algorithm 1 (whole Dtrain, all classes)
     # ------------------------------------------------------------------
 
     def _fit_lvq(self, X_train, y_train, n_prototypes,
                  max_iter=2500, gtol=1e-5, eta=0.1):
         """
-        LVQ1 sur tout Dtrain (toutes classes).
+        LVQ1 over the whole Dtrain (all classes).
 
-        W = nprot prototypes par classe, chacun étiqueté.
-        Pour chaque (x, y) :
-          w* = argmin_{w in W} ||x - w||²   (toutes classes confondues)
-          si classe(w*) == y  →  w* ← w* + η(x − w*)   (attraction)
-          sinon               →  w* ← w* − η(x − w*)   (répulsion)
+        W = nprot prototypes per class, each labeled.
+        For each (x, y):
+          w* = argmin_{w in W} ||x - w||²   (over all classes combined)
+          if class(w*) == y  →  w* ← w* + η(x − w*)   (attraction)
+          else               →  w* ← w* − η(x − w*)   (repulsion)
         """
         classes = np.unique(y_train)
         W_list, L_list = [], []
@@ -92,7 +91,7 @@ class CounterfactualLVQ:
                 if labels[w_idx] == y:
                     W[w_idx] += eta * (x - W[w_idx])   # attraction
                 else:
-                    W[w_idx] -= eta * (x - W[w_idx])   # répulsion
+                    W[w_idx] -= eta * (x - W[w_idx])   # repulsion
             if np.max(np.linalg.norm(W - prev, axis=1)) < gtol:
                 break
 
@@ -100,14 +99,14 @@ class CounterfactualLVQ:
             self.lvq_prototypes[cls] = W[labels == cls]
 
     # ------------------------------------------------------------------
-    # Interrogation du classifieur (f_y' tout au long)
+    # Classifier querying (f_y' throughout)
     # ------------------------------------------------------------------
 
     def _get_target_proba(self, x, target_class):
         """
         P(y' | x).
-        Binaire      : clf.predict_proba(x)[index de y']
-        Multiclasse  : clf[y'].predict_proba(x)[1]  = f_y'(x)
+        Binary      : clf.predict_proba(x)[index of y']
+        Multiclass  : clf[y'].predict_proba(x)[1]  = f_y'(x)
         """
         x = np.array(x).reshape(1, -1)
         if isinstance(self.clf, dict):
@@ -117,10 +116,10 @@ class CounterfactualLVQ:
 
     def _predict_class(self, x_c, target_class=None):
         """
-        Binaire      : clf.predict(x_c)
-        Multiclasse  : prédiction du classifieur de la classe cible
-                       f_y' — le même qui guide l'optimisation.
-                       Retourne y' si f_y' reconnaît x_c, None sinon.
+        Binary      : clf.predict(x_c)
+        Multiclass  : prediction from the target class classifier
+                       f_y' — the same one that guides the optimization.
+                       Returns y' if f_y' recognizes x_c, None otherwise.
         """
         x_c = np.array(x_c).reshape(1, -1)
         if isinstance(self.clf, dict):
@@ -133,22 +132,22 @@ class CounterfactualLVQ:
         return self._predict_class(x_c, target_class) == target_class
 
     # ------------------------------------------------------------------
-    # Recherche linéaire (identique binaire et multiclasse)
+    # Line search (identical for binary and multiclass)
     # ------------------------------------------------------------------
 
     def _line_search(self, x, x_c, target_class):
         """
-        Minimise L(λ) = (1−λ)² + β · (1 − P(y' | λ·x + (1−λ)·x_c))²
-        via la méthode de Brent bornée sur [0, 1].
+        Minimizes L(λ) = (1−λ)² + β · (1 − P(y' | λ·x + (1−λ)·x_c))²
+        via bounded Brent's method on [0, 1].
 
         λ = 1 ↔ x0 (instance), λ = 0 ↔ x_c (prototype).
-        (1−λ)² pénalise l'éloignement de x0 ; (1−P)² pénalise le
-        manque de confiance dans la classe cible : les deux termes
-        sont antagonistes, le minimum s'établit près de la frontière,
-        côté classe cible.
+        (1−λ)² penalizes distance from x0; (1−P)² penalizes the
+        lack of confidence in the target class: the two terms
+        are antagonistic, so the minimum settles near the boundary,
+        on the target class side.
         """
         def objective(lam):
-            # lam ∈ [0, 1] : 1 = x0, 0 = prototype
+            # lam ∈ [0, 1]: 1 = x0, 0 = prototype
             x_interp = lam * x + (1 - lam) * x_c
             proba = self._get_target_proba(x_interp, target_class)
             return (1 - lam) ** 2 + self.beta * (1 - proba) ** 2
@@ -160,7 +159,7 @@ class CounterfactualLVQ:
         return best_l * x + (1 - best_l) * x_c
 
     # ------------------------------------------------------------------
-    # Génération des candidats depuis les prototypes de y'
+    # Generating candidates from the prototypes of y'
     # ------------------------------------------------------------------
 
     def _compute_candidates(self, x, target_class):
@@ -171,7 +170,7 @@ class CounterfactualLVQ:
                          for x_c in P_target])
 
     # ------------------------------------------------------------------
-    # Stratégies de sélection
+    # Selection strategies
     # ------------------------------------------------------------------
 
     def _single(self, x, target_class):
@@ -198,15 +197,15 @@ class CounterfactualLVQ:
                 if self._is_valid(c, target_class)][:N]
 
     # ------------------------------------------------------------------
-    # Point d'entrée
+    # Entry point
     # ------------------------------------------------------------------
 
     def compute_counterfactual(self, x, target, N=1, model_override=None,
                                target_class=None, strategy='greedy', **kwargs):
         """
-        Les prototypes sont déjà prêts (phase offline, à l'__init__).
-        Ici : recherche linéaire depuis chaque prototype de y', puis
-        sélection des N meilleurs candidats valides.
+        The prototypes are already ready (offline phase, in __init__).
+        Here: line search from each prototype of y', then
+        selection of the N best valid candidates.
         """
         start = time.time()
         tc = target_class if target_class is not None else target
